@@ -1160,7 +1160,9 @@ export const PromptInputButton = ({
 
   return (
     <Tooltip>
-      <TooltipTrigger>{button}</TooltipTrigger>
+      {/* Base UI's trigger renders its own button; `render` merges it into
+          ours instead of nesting one button inside another. */}
+      <TooltipTrigger render={button} />
       <TooltipContent side={side}>
         {tooltipContent}
         {shortcut && (
