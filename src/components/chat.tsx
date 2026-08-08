@@ -1,10 +1,17 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { Loader2Icon, MessageSquare } from "lucide-react";
+import type { ChatStatus } from "ai";
+import { CameraIcon, Loader2Icon, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import {
+  Attachment,
+  AttachmentPreview,
+  AttachmentRemove,
+  Attachments,
+} from "@/components/ai-elements/attachments";
 import {
   Conversation,
   ConversationContent,
@@ -18,8 +25,12 @@ import {
 } from "@/components/ai-elements/message";
 import {
   PromptInput,
+  PromptInputButton,
+  PromptInputFooter,
+  PromptInputHeader,
   PromptInputSubmit,
   PromptInputTextarea,
+  usePromptInputAttachments,
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
 import type { IsoDate } from "@/lib/nutrition/food-entry";
@@ -32,6 +43,81 @@ import type { NutritionTools } from "@/lib/nutrition/tools";
  * leaving the rings stale.
  */
 const LOG_TOOL_PART = `tool-${"logFoodEntry" satisfies keyof NutritionTools}`;
+
+/** Whether a reply is on its way, which is when the composer stops accepting. */
+function isResponding(status: ChatStatus): boolean {
+  return status === "submitted" || status === "streaming";
+}
+
+/** The photo waiting to be sent, shown above the textarea so it can be undone. */
+function LabelPhotoPreview() {
+  const attachments = usePromptInputAttachments();
+  if (attachments.files.length === 0) return null;
+
+  return (
+    <PromptInputHeader>
+      {/* The grid variant right-aligns for message bubbles; in the composer the
+          photo belongs on the left, where the text starts. */}
+      <Attachments variant="grid" className="mr-auto ml-0">
+        {attachments.files.map((file) => (
+          <Attachment
+            key={file.id}
+            data={file}
+            onRemove={() => attachments.remove(file.id)}
+          >
+            <AttachmentPreview />
+            <AttachmentRemove />
+          </Attachment>
+        ))}
+      </Attachments>
+    </PromptInputHeader>
+  );
+}
+
+/**
+ * Asks for the label photo. The input behind this is capture-capable, so a
+ * phone opens its camera rather than a file browser; on desktop it is an
+ * ordinary file picker.
+ *
+ * The photo rides along on the user's message and is therefore already in the
+ * model's context — nothing here extracts numbers from it.
+ */
+function LabelPhotoButton() {
+  const attachments = usePromptInputAttachments();
+
+  return (
+    <PromptInputButton
+      onClick={attachments.openFileDialog}
+      tooltip="Attach a nutrition label photo"
+      aria-label="Attach a nutrition label photo"
+    >
+      <CameraIcon className="size-4" />
+    </PromptInputButton>
+  );
+}
+
+/**
+ * Sends whatever the composer holds. A photo with no words is a message worth
+ * sending, so an attachment alone enables it.
+ */
+function ComposerSubmit({
+  text,
+  status,
+}: {
+  text: string;
+  status: ChatStatus;
+}) {
+  const attachments = usePromptInputAttachments();
+  const hasSomethingToSay =
+    text.trim().length > 0 || attachments.files.length > 0;
+
+  return (
+    <PromptInputSubmit
+      status={status}
+      disabled={!hasSomethingToSay || isResponding(status)}
+    />
+  );
+}
 
 export type ChatProps = {
   /** The day the server derived the rings from, so we can tell it if it guessed wrong. */
@@ -62,13 +148,16 @@ export function Chat({ renderedDate }: ChatProps) {
     if (today !== renderedDate) router.refresh();
   }, [renderedDate, router]);
 
-  const isResponding = status === "submitted" || status === "streaming";
-
   const handleSubmit = (message: PromptInputMessage) => {
     const text = message.text.trim();
-    if (!text) return;
+    // A label photo on its own is a message: the amount can follow in the next
+    // one, and the model asks for it.
+    if (!text && message.files.length === 0) return;
 
-    sendMessage({ text }, { body: { today: localToday() } });
+    sendMessage(
+      text ? { text, files: message.files } : { files: message.files },
+      { body: { today: localToday() } },
+    );
     setInput("");
   };
 
@@ -86,19 +175,35 @@ export function Chat({ renderedDate }: ChatProps) {
             messages.map((message) => (
               <Message from={message.role} key={message.id}>
                 <MessageContent>
-                  {message.parts.map((part, index) =>
-                    part.type === "text" ? (
-                      <MessageResponse key={`${message.id}-${index}`}>
-                        {part.text}
-                      </MessageResponse>
-                    ) : null,
-                  )}
+                  {message.parts.map((part, index) => {
+                    const key = `${message.id}-${index}`;
+
+                    if (part.type === "text") {
+                      return (
+                        <MessageResponse key={key}>{part.text}</MessageResponse>
+                      );
+                    }
+
+                    // The label photo, shown back so the user can see which
+                    // packet an entry came from.
+                    if (part.type === "file") {
+                      return (
+                        <Attachments key={key} variant="grid">
+                          <Attachment data={{ ...part, id: key }}>
+                            <AttachmentPreview />
+                          </Attachment>
+                        </Attachments>
+                      );
+                    }
+
+                    return null;
+                  })}
                 </MessageContent>
               </Message>
             ))
           )}
 
-          {isResponding && (
+          {isResponding(status) && (
             <div
               role="status"
               className="text-muted-foreground flex items-center gap-2 text-sm"
@@ -118,18 +223,23 @@ export function Chat({ renderedDate }: ChatProps) {
         <ConversationScrollButton />
       </Conversation>
 
-      <PromptInput onSubmit={handleSubmit} className="relative w-full">
+      <PromptInput
+        onSubmit={handleSubmit}
+        className="w-full"
+        accept="image/*"
+        capture="environment"
+        maxFiles={1}
+      >
+        <LabelPhotoPreview />
         <PromptInputTextarea
           value={input}
           onChange={(event) => setInput(event.currentTarget.value)}
           placeholder="What did you eat?"
-          className="pr-12"
         />
-        <PromptInputSubmit
-          status={status}
-          disabled={!input.trim() || isResponding}
-          className="absolute right-1 bottom-1"
-        />
+        <PromptInputFooter>
+          <LabelPhotoButton />
+          <ComposerSubmit text={input} status={status} />
+        </PromptInputFooter>
       </PromptInput>
     </div>
   );

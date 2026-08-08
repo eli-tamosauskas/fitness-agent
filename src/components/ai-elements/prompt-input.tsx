@@ -497,6 +497,8 @@ export type PromptInputProps = Omit<
 > & {
   // e.g., "image/*" or leave undefined for any
   accept?: string;
+  // Passed to the hidden file input so a phone offers its camera directly.
+  capture?: boolean | "user" | "environment";
   multiple?: boolean;
   // When true, accepts drops anywhere on document. Default false (opt-in).
   globalDrop?: boolean;
@@ -519,6 +521,7 @@ export type PromptInputProps = Omit<
 export const PromptInput = ({
   className,
   accept,
+  capture,
   multiple,
   globalDrop,
   syncHiddenInput,
@@ -913,6 +916,7 @@ export const PromptInput = ({
       <input
         accept={accept}
         aria-label="Upload files"
+        capture={capture}
         className="hidden"
         multiple={multiple}
         onChange={handleChange}

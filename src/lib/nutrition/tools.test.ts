@@ -68,28 +68,6 @@ describe("nutrition tools", () => {
     expect(tomorrow.totals.calories).toBe(0);
   });
 
-  it("multiplies a per-serving base by a fractional serving count", async () => {
-    await tools.logFoodEntry({
-      ...STATED_MEAL,
-      description: "greek yogurt",
-      source: "label",
-      quantity: 1.5,
-      calories: 120,
-      protein: 10,
-      carbs: 6,
-      fat: 4,
-    });
-
-    const summary = await tools.getDailySummary({ date: TODAY });
-
-    expect(summary.totals).toEqual({
-      calories: 180,
-      protein: 15,
-      carbs: 9,
-      fat: 6,
-    });
-  });
-
   it("scales a per-100g base by the grams consumed", async () => {
     await tools.logFoodEntry({
       ...STATED_MEAL,
@@ -110,6 +88,78 @@ describe("nutrition tools", () => {
       protein: 2.2,
       carbs: 29.4,
       fat: 1,
+    });
+  });
+
+  /**
+   * The label path. The figures come off the packet — per serving when the
+   * user counted servings, per 100g when they weighed it — and the tool is
+   * handed them unmultiplied either way.
+   */
+  describe("a food logged from a nutrition label", () => {
+    /** A protein bar's panel: 210 cal / 20g / 21g / 7g per bar. */
+    const LABEL_PER_SERVING = {
+      description: "protein bar",
+      source: "label",
+      unit: "serving",
+      calories: 210,
+      protein: 20,
+      carbs: 21,
+      fat: 7,
+    };
+
+    /** The same packet's per-100g column, for when the user weighed it. */
+    const LABEL_PER_100G = {
+      description: "granola",
+      source: "label",
+      unit: "g",
+      calories: 450,
+      protein: 10,
+      carbs: 60,
+      fat: 18,
+    };
+
+    it("contributes the label's per-serving figures times the servings eaten", async () => {
+      await tools.logFoodEntry({ ...LABEL_PER_SERVING, quantity: 1.5 });
+
+      const summary = await tools.getDailySummary({ date: TODAY });
+
+      expect(summary.totals).toEqual({
+        calories: 315,
+        protein: 30,
+        carbs: 31.5,
+        fat: 10.5,
+      });
+    });
+
+    it("scales the label's per-100g figures by the grams eaten", async () => {
+      await tools.logFoodEntry({ ...LABEL_PER_100G, quantity: 60 });
+
+      const summary = await tools.getDailySummary({ date: TODAY });
+
+      expect(summary.totals).toEqual({
+        calories: 270,
+        protein: 6,
+        carbs: 36,
+        fat: 10.8,
+      });
+    });
+
+    it("stores the base nutrients as printed, not the multiplied total", async () => {
+      const entry = await tools.logFoodEntry({
+        ...LABEL_PER_SERVING,
+        quantity: 1.5,
+      });
+
+      expect(entry).toMatchObject({
+        source: "label",
+        quantity: 1.5,
+        unit: "serving",
+        calories: 210,
+        protein: 20,
+        carbs: 21,
+        fat: 7,
+      });
     });
   });
 
