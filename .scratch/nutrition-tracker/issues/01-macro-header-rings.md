@@ -1,6 +1,6 @@
 # Macro header: four target rings
 
-Status: ready-for-agent
+Status: resolved
 
 ## Parent
 
@@ -20,14 +20,14 @@ Follow the project's UI sourcing order: reuse existing components, then the shad
 
 ## Acceptance criteria
 
-- [ ] The four targets are hardcoded constants exported from a single module
-- [ ] Each of calories, protein, carbs and fat renders as a ring with its raw numbers beside it
-- [ ] The four stats sit side by side at desktop width with no wrapping and no horizontal scrolling
-- [ ] With no consumption, every ring reads zero against its target
-- [ ] Given consumed above target, the arc caps at full instead of wrapping, the ring uses the "over" color token, and the raw figure still shows the true amount
-- [ ] The create-next-app placeholder page is gone
-- [ ] The home-page e2e test asserts on the macro header and passes
-- [ ] `npm run check` passes
+- [x] The four targets are hardcoded constants exported from a single module
+- [x] Each of calories, protein, carbs and fat renders as a ring with its raw numbers beside it
+- [x] The four stats sit side by side at desktop width with no wrapping and no horizontal scrolling
+- [x] With no consumption, every ring reads zero against its target
+- [x] Given consumed above target, the arc caps at full instead of wrapping, the ring uses the "over" color token, and the raw figure still shows the true amount
+- [x] The create-next-app placeholder page is gone
+- [x] The home-page e2e test asserts on the macro header and passes
+- [x] `npm run check` passes
 
 ## Blocked by
 
