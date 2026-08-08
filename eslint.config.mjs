@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     // Playwright output.
     "playwright-report/**",
     "test-results/**",
+    // Vendored agent skill docs and example scripts — not app code.
+    ".agents/**",
   ]),
   // Must come last: turns off stylistic rules that conflict with Prettier.
   prettier,
