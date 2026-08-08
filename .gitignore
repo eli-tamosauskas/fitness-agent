@@ -43,3 +43,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# nutrition log (sqlite) — the real one, and the one e2e runs against
+/.data/
+/.playwright/

@@ -25,19 +25,42 @@ Establish the data-layer test pattern here: there is no prior art for one in thi
 
 ## Acceptance criteria
 
-- [ ] A helper provisions and tears down a temporary SQLite database file per test
-- [ ] Logging a stated-macro entry via the tool makes it appear in the same day's summary totals
-- [ ] A day with no entries summarizes as zeros rather than erroring
-- [ ] An entry logged for one date does not appear in another date's summary
-- [ ] Invalid tool input — negative quantity, unknown unit, missing nutrient — is rejected by validation rather than written
-- [ ] Stating macros in chat commits the entry in one message, with no confirmation step
-- [ ] The rings reflect the new totals once the stream completes, without a manual page reload
-- [ ] Totals survive a page reload and a browser restart
-- [ ] An entry logged at 9pm local time lands on today, not tomorrow
-- [ ] A working indicator is visible while the assistant is responding
-- [ ] The SQLite file is gitignored
-- [ ] `npm run check` passes
+- [x] A helper provisions and tears down a temporary SQLite database file per test
+- [x] Logging a stated-macro entry via the tool makes it appear in the same day's summary totals
+- [x] A day with no entries summarizes as zeros rather than erroring
+- [x] An entry logged for one date does not appear in another date's summary
+- [x] Invalid tool input — negative quantity, unknown unit, missing nutrient — is rejected by validation rather than written
+- [x] Stating macros in chat commits the entry in one message, with no confirmation step
+- [x] The rings reflect the new totals once the stream completes, without a manual page reload
+- [x] Totals survive a page reload and a browser restart
+- [x] An entry logged at 9pm local time lands on today, not tomorrow
+- [x] A working indicator is visible while the assistant is responding
+- [x] The SQLite file is gitignored
+- [x] `npm run check` passes
 
 ## Blocked by
 
 - `01-macro-header-rings.md`
+
+## Comments
+
+**Implemented.** The tracer bullet runs end to end: a stated-macro message commits an
+entry and the rings move without a reload, verified live against the Gateway.
+
+Two decisions worth recording:
+
+- **Reading a day vs. writing one.** Writes never touch a clock: the day comes only from
+  the `today` field on the chat request, which the browser computes. The *read* path
+  needs a day before any request has been made, so the browser also parks its local date
+  in a `local-date` cookie and the page reads that. On the very first visit, before the
+  cookie exists, the page falls back to the host's date — the log is empty then anyway,
+  and the client refreshes the moment it finds a mismatch.
+- **`node:sqlite` works.** No `better-sqlite3` fallback was needed; it resolves inside
+  both the route handler and the server component under Turbopack, in dev and in a
+  production build. It emits an experimental warning on every process start.
+
+The chat UI came from the `ai-elements` registry (conversation, message, prompt-input),
+which pulled in ten shadcn primitives and `streamdown`. Heavier than this slice needs,
+but it is the project's stated sourcing order and slice 03 wants the attachment support.
+Four type errors in the vendored `prompt-input.tsx` were fixed against the installed
+`@base-ui/react`.

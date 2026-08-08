@@ -9,7 +9,7 @@ const MACROS = [
   { label: "Fat", target: "80" },
 ];
 
-test("the macro header reads zero against every target", async ({ page }) => {
+test("an empty log reads zero against every target", async ({ page }) => {
   await page.goto("/");
 
   for (const { label, target } of MACROS) {
@@ -52,4 +52,12 @@ test("the page does not scroll horizontally", async ({ page }) => {
       document.documentElement.clientWidth,
   );
   expect(overflows).toBe(false);
+});
+
+test("the chat is ready to take a message", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("textbox")).toBeVisible();
+  // Nothing is in flight, so nothing claims to be working.
+  await expect(page.getByText("Working on it")).toBeHidden();
 });
