@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright output.
+    "playwright-report/**",
+    "test-results/**",
   ]),
   // Must come last: turns off stylistic rules that conflict with Prettier.
   prettier,

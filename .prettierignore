@@ -7,3 +7,5 @@ public/
 package-lock.json
 next-env.d.ts
 .agents/
+playwright-report/
+test-results/
