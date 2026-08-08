@@ -8,6 +8,7 @@ import type { DailySummary } from "./daily-summary";
 import { closeDatabase } from "./database";
 import type { FoodEntry, IsoDate } from "./food-entry";
 import { createNutritionTools, type NutritionTools } from "./tools";
+import type { UsdaLookupResult } from "./usda";
 
 type NutritionTool = NutritionTools[keyof NutritionTools];
 
@@ -41,22 +42,43 @@ export type ToolHarness = {
   /** The local day the harness's writes land on. */
   today: IsoDate;
   logFoodEntry(input: unknown): Promise<FoodEntry>;
+  lookUpUsdaFood(input: unknown): Promise<UsdaLookupResult>;
   getDailySummary(input: unknown): Promise<DailySummary>;
   dispose(): void;
+};
+
+export type ToolHarnessOptions = {
+  today: IsoDate;
+  /** Stands in for FoodData Central, so no test touches the network. */
+  fetch?: typeof fetch;
 };
 
 /**
  * The agent's tools wired to a throwaway SQLite file. One database per
  * harness, removed on `dispose`, so tests never see each other's entries.
  */
-export function createToolHarness({ today }: { today: IsoDate }): ToolHarness {
+export function createToolHarness({
+  today,
+  fetch: fetchImpl,
+}: ToolHarnessOptions): ToolHarness {
   const directory = mkdtempSync(join(tmpdir(), "nutrition-"));
   const databasePath = join(directory, "nutrition.db");
-  const tools = createNutritionTools({ today, databasePath });
+  const tools = createNutritionTools({
+    today,
+    databasePath,
+    usda: {
+      // Supplied because a lookup with no key short-circuits before it asks
+      // the fake anything.
+      apiKey: "test-api-key",
+      fetch: fetchImpl,
+    },
+  });
 
   return {
     today,
     logFoodEntry: (input) => callTool<FoodEntry>(tools.logFoodEntry, input),
+    lookUpUsdaFood: (input) =>
+      callTool<UsdaLookupResult>(tools.lookUpUsdaFood, input),
     getDailySummary: (input) =>
       callTool<DailySummary>(tools.getDailySummary, input),
     dispose: () => {

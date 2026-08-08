@@ -9,6 +9,7 @@ import {
   type FoodEntry,
   type IsoDate,
 } from "./food-entry";
+import { lookUpUsdaFood, type UsdaLookupOptions } from "./usda";
 
 export type NutritionToolsOptions = {
   /**
@@ -17,6 +18,8 @@ export type NutritionToolsOptions = {
    */
   today: IsoDate;
   databasePath?: string;
+  /** How FoodData Central is reached. Overridden by tests. */
+  usda?: UsdaLookupOptions;
 };
 
 /**
@@ -26,6 +29,7 @@ export type NutritionToolsOptions = {
 export function createNutritionTools({
   today,
   databasePath = defaultDatabasePath(),
+  usda,
 }: NutritionToolsOptions) {
   return {
     logFoodEntry: tool({
@@ -35,6 +39,21 @@ export function createNutritionTools({
         "immediately; do not ask the user to confirm first.",
       inputSchema: foodEntryInputSchema,
       execute: (input): FoodEntry => insertEntry(databasePath, today, input),
+    }),
+
+    lookUpUsdaFood: tool({
+      description:
+        "Look up an unlabelled whole food — fruit, vegetables, meat, anything with no packet — " +
+        "in USDA FoodData Central. Returns the matched food's name and its nutrients per 100g. " +
+        "Always tell the user which food matched, so they can spot a wrong match. " +
+        "If found is false, tell the user the lookup failed and do not log anything for it.",
+      inputSchema: z.object({
+        query: z
+          .string()
+          .min(1)
+          .describe("The food to search for, e.g. 'kiwi' or 'chicken breast'"),
+      }),
+      execute: ({ query }) => lookUpUsdaFood(query, usda),
     }),
 
     getDailySummary: tool({
