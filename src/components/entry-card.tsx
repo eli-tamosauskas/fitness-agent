@@ -30,8 +30,14 @@ function amountEaten({ quantity, unit }: FoodEntry): string {
 
 export type EntryCardProps = {
   entry: LoggedEntry;
-  /** Deletes the entry. Rejecting leaves the card standing. */
-  onDelete: (id: number) => void | Promise<void>;
+  /**
+   * Deletes the entry. Rejecting leaves the card standing.
+   *
+   * Absent on a past day, where the control is not drawn at all rather than
+   * drawn and refused. The database is what actually keeps history read-only —
+   * its delete is scoped to the day — so this is a courtesy, not the boundary.
+   */
+  onDelete?: (id: number) => void | Promise<void>;
 };
 
 /**
@@ -46,11 +52,15 @@ export function EntryCard({ entry, onDelete }: EntryCardProps) {
   );
   const [failed, setFailed] = useState(false);
 
-  const remove = async () => {
+  // Takes the handler rather than closing over the optional prop, so the only
+  // check that it exists is the one that decides whether to draw the control.
+  const remove = async (
+    deleteEntry: NonNullable<EntryCardProps["onDelete"]>,
+  ) => {
     setState("deleting");
     setFailed(false);
     try {
-      await onDelete(entry.id);
+      await deleteEntry(entry.id);
       setState("deleted");
     } catch {
       // The entry is still there, so the card had better still show it.
@@ -80,21 +90,23 @@ export function EntryCard({ entry, onDelete }: EntryCardProps) {
           <CardDescription>
             {amountEaten(entry)} · {SOURCE_LABELS[entry.source]}
           </CardDescription>
-          <CardAction>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Delete ${entry.description}`}
-              disabled={state === "deleting"}
-              onClick={remove}
-            >
-              {state === "deleting" ? (
-                <Loader2Icon className="size-4 animate-spin" />
-              ) : (
-                <XIcon className="size-4" />
-              )}
-            </Button>
-          </CardAction>
+          {onDelete && (
+            <CardAction>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Delete ${entry.description}`}
+                disabled={state === "deleting"}
+                onClick={() => remove(onDelete)}
+              >
+                {state === "deleting" ? (
+                  <Loader2Icon className="size-4 animate-spin" />
+                ) : (
+                  <XIcon className="size-4" />
+                )}
+              </Button>
+            </CardAction>
+          )}
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-4 gap-2">

@@ -57,6 +57,22 @@ function wroteToTheLog(message: NutritionUIMessage): boolean {
   );
 }
 
+/**
+ * What an empty conversation says. On today it asks for the first meal; on a
+ * past day nothing was said on it states the fact, because there is nothing the
+ * user could do about it from there — the day cannot be written to.
+ */
+const NOTHING_SAID = {
+  writable: {
+    title: "Log what you ate",
+    description: "Try “that was 400 cal, 30g protein, 40g carbs, 12g fat”.",
+  },
+  readOnly: {
+    title: "No conversation on this day",
+    description: "Nothing was said here.",
+  },
+} as const;
+
 /** Whether a reply is on its way, which is when the composer stops accepting. */
 function isResponding(status: ChatStatus): boolean {
   return status === "submitted" || status === "streaming";
@@ -157,11 +173,17 @@ const transport = new DefaultChatTransport<NutritionUIMessage>({
  * or reloads. Nothing is mis-recorded — the server stamps each write with its
  * own day — and a clock on the client is exactly the machinery this arrangement
  * exists to avoid.
+ *
+ * Whether the day can be written to arrives as a flag, decided once on the
+ * server. Nothing here works out which day it is or what that implies.
  */
 export function Chat({
   initialMessages,
+  readOnly,
 }: {
   initialMessages: NutritionUIMessage[];
+  /** A past day: read it, do not write to it. */
+  readOnly: boolean;
 }) {
   const router = useRouter();
   const [input, setInput] = useState("");
@@ -203,8 +225,7 @@ export function Chat({
           {messages.length === 0 ? (
             <ConversationEmptyState
               icon={<MessageSquare className="size-10" />}
-              title="Log what you ate"
-              description="Try “that was 400 cal, 30g protein, 40g carbs, 12g fat”."
+              {...NOTHING_SAID[readOnly ? "readOnly" : "writable"]}
             />
           ) : (
             messages.map((message) => (
@@ -229,7 +250,7 @@ export function Chat({
                         <EntryCard
                           key={key}
                           entry={part.output}
-                          onDelete={deleteEntry}
+                          onDelete={readOnly ? undefined : deleteEntry}
                         />
                       );
                     }
@@ -268,24 +289,26 @@ export function Chat({
         <ConversationScrollButton />
       </Conversation>
 
-      <PromptInput
-        onSubmit={handleSubmit}
-        className="w-full"
-        accept="image/*"
-        capture="environment"
-        maxFiles={1}
-      >
-        <LabelPhotoPreview />
-        <PromptInputTextarea
-          value={input}
-          onChange={(event) => setInput(event.currentTarget.value)}
-          placeholder="What did you eat?"
-        />
-        <PromptInputFooter>
-          <LabelPhotoButton />
-          <ComposerSubmit text={input} status={status} />
-        </PromptInputFooter>
-      </PromptInput>
+      {!readOnly && (
+        <PromptInput
+          onSubmit={handleSubmit}
+          className="w-full"
+          accept="image/*"
+          capture="environment"
+          maxFiles={1}
+        >
+          <LabelPhotoPreview />
+          <PromptInputTextarea
+            value={input}
+            onChange={(event) => setInput(event.currentTarget.value)}
+            placeholder="What did you eat?"
+          />
+          <PromptInputFooter>
+            <LabelPhotoButton />
+            <ComposerSubmit text={input} status={status} />
+          </PromptInputFooter>
+        </PromptInput>
+      )}
     </div>
   );
 }

@@ -59,6 +59,16 @@ describe("EntryCard", () => {
   });
 
   describe("the delete control", () => {
+    it("is absent on a day that cannot be written to", () => {
+      render(<EntryCard entry={BAR} />);
+
+      expect(
+        screen.queryByRole("button", { name: /delete/i }),
+      ).not.toBeInTheDocument();
+      // The entry itself still reads exactly as it does on a live day.
+      expect(screen.getByRole("group")).toHaveTextContent("315");
+    });
+
     it("deletes the entry it stands for", async () => {
       const onDelete = vi.fn().mockResolvedValue(undefined);
       render(<EntryCard entry={BAR} onDelete={onDelete} />);

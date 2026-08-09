@@ -51,21 +51,21 @@ long before they know which date that was.
 
 ## Acceptance criteria
 
-- [ ] One function takes a date, a timezone and a database path and returns the date, whether it is today, whether it was tracked, the totals, the logged entries, the conversation's messages, and the date list for the sidebar
-- [ ] It composes the existing daily-summary function; the daily summary keeps its current shape and does not gain messages
-- [ ] Tests drive that function against a temporary database and cover: a day with entries and a conversation; a day with entries and no conversation; a date with nothing behind it; today appearing in the date list before anything is logged; the date list ordered newest first; and the today/past determination against a supplied timezone
-- [ ] A dated route segment renders that day's rings and conversation, server-rendered with no loading state
-- [ ] A malformed date returns a 404
-- [ ] A future date redirects to today
-- [ ] A valid past date with nothing behind it renders an empty read-only day rather than erroring
-- [ ] A day tracked but never chatted on opens cleanly and states that there was no conversation
-- [ ] Read-only is derived once on the server and threaded down; no component computes the current day or decides read-only for itself
-- [ ] Component tests: a read-only day renders no composer and no delete controls; a past day's empty state shows the statement rather than the invitation; the header shows a date label on a past day and none on today
-- [ ] The header's rings show the viewed day's totals
-- [ ] The date-scoped delete in the food log module is unchanged and still refuses a past day
-- [ ] The back button returns to the day navigated from
-- [ ] A Playwright spec navigates to a past day and asserts there is no composer
-- [ ] The agent still answers questions about past days from the food log, unchanged
+- [x] One function takes a date, a timezone and a database path and returns the date, whether it is today, whether it was tracked, the totals, the logged entries, the conversation's messages, and the date list for the sidebar
+- [x] It composes the existing daily-summary function; the daily summary keeps its current shape and does not gain messages
+- [x] Tests drive that function against a temporary database and cover: a day with entries and a conversation; a day with entries and no conversation; a date with nothing behind it; today appearing in the date list before anything is logged; the date list ordered newest first; and the today/past determination against a supplied timezone
+- [x] A dated route segment renders that day's rings and conversation, server-rendered with no loading state
+- [x] A malformed date returns a 404
+- [x] A future date redirects to today
+- [x] A valid past date with nothing behind it renders an empty read-only day rather than erroring
+- [x] A day tracked but never chatted on opens cleanly and states that there was no conversation
+- [x] Read-only is derived once on the server and threaded down; no component computes the current day or decides read-only for itself
+- [x] Component tests: a read-only day renders no composer and no delete controls; a past day's empty state shows the statement rather than the invitation; the header shows a date label on a past day and none on today
+- [x] The header's rings show the viewed day's totals
+- [x] The date-scoped delete in the food log module is unchanged and still refuses a past day
+- [x] The back button returns to the day navigated from
+- [x] A Playwright spec navigates to a past day and asserts there is no composer
+- [x] The agent still answers questions about past days from the food log, unchanged
 
 ## Blocked by
 

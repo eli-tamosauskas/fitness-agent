@@ -1,15 +1,13 @@
 import { connection } from "next/server";
 
-import { Chat } from "@/components/chat";
-import { MacroHeader } from "@/components/macro-header";
-import { conversationFor } from "@/lib/chat/conversation-store";
-import { dailySummary } from "@/lib/nutrition/daily-summary";
+import { DayScreen } from "@/components/day-screen";
+import { dayView } from "@/lib/day-view";
 import { APP_TIME_ZONE, today } from "@/lib/nutrition/local-date";
 
 /**
- * The single page: the server reads today's entries and today's conversation,
- * derives the totals, and renders them above the chat. There is no client-side
- * total state, and no first-paint guess at the day — the server names it.
+ * The root route is today. It names the day itself rather than redirecting to
+ * a dated URL, so the address a user keeps open stays the day they are on
+ * rather than the day they opened it.
  */
 export default async function Page() {
   // The clock and the database are both synchronous, and neither looks like a
@@ -19,17 +17,5 @@ export default async function Page() {
   // conversation missing everything said since the server started.
   await connection();
 
-  const date = today(APP_TIME_ZONE);
-  const { totals } = dailySummary(date);
-  const messages = conversationFor(date);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <h1 className="sr-only">Nutrition tracker</h1>
-      <MacroHeader totals={totals} />
-      <main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-6 py-8">
-        <Chat initialMessages={messages} />
-      </main>
-    </div>
-  );
+  return <DayScreen day={dayView(today(APP_TIME_ZONE), APP_TIME_ZONE)} />;
 }

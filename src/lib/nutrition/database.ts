@@ -130,6 +130,22 @@ export function deleteEntry(
   return changes > 0;
 }
 
+/**
+ * Every day something was logged on, newest first. A day with no entries is not
+ * a day worth listing, so the log itself is the list — there is no separate
+ * record of which days exist.
+ *
+ * Uncapped and unpaginated: a single user accrues on the order of 365 rows a
+ * year, which is a list, not a dataset.
+ */
+export function trackedDates(path: string): IsoDate[] {
+  const rows = openDatabase(path)
+    .prepare(`SELECT DISTINCT date FROM food_entries ORDER BY date DESC`)
+    .all() as { date: string }[];
+
+  return rows.map((row) => row.date);
+}
+
 export function entriesForDate(path: string, date: IsoDate): FoodEntry[] {
   const rows = openDatabase(path)
     .prepare(`SELECT * FROM food_entries WHERE date = ? ORDER BY id`)
