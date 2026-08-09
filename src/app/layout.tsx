@@ -33,7 +33,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         inter.variable,
       )}
     >
-      <body className="flex min-h-full flex-col">{children}</body>
+      {/* Height-bounded, not min-height: the conversation scrolls inside the
+          column rather than growing the page past the viewport. */}
+      <body className="flex h-full flex-col overflow-hidden">{children}</body>
     </html>
   );
 }
