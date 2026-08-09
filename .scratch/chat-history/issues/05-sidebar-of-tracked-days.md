@@ -35,16 +35,16 @@ The sidebar's contents are deliberately **not** covered end-to-end — the seam 
 
 ## Acceptance criteria
 
-- [ ] The shadcn sidebar component is installed and used, rather than a hand-rolled drawer
-- [ ] The sidebar lists days that have food entries, ordered newest first
-- [ ] Today appears in the list even when nothing has been logged yet
-- [ ] Today's row reads "Today"; every other row reads `YYYY-MM-DD`
-- [ ] Selecting a row navigates to that day's URL
-- [ ] On mobile the sidebar is off-canvas behind a trigger; on desktop it is fixed and always visible
-- [ ] The day list comes from the existing day-read seam — no second read path is added
-- [ ] No pagination, virtualisation, or cap is built
-- [ ] Navigating away mid-stream aborts the stream
-- [ ] The page still does not scroll horizontally at mobile width
+- [x] The shadcn sidebar component is installed and used, rather than a hand-rolled drawer
+- [x] The sidebar lists days that have food entries, ordered newest first
+- [x] Today appears in the list even when nothing has been logged yet
+- [x] Today's row reads "Today"; every other row reads `YYYY-MM-DD`
+- [x] Selecting a row navigates to that day's URL
+- [x] On mobile the sidebar is off-canvas behind a trigger; on desktop it is fixed and always visible
+- [x] The day list comes from the existing day-read seam — no second read path is added
+- [x] No pagination, virtualisation, or cap is built
+- [x] Navigating away mid-stream aborts the stream
+- [x] The page still does not scroll horizontally at mobile width
 
 ## Blocked by
 

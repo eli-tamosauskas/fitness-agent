@@ -20,6 +20,13 @@ export type DayView = {
    */
   isToday: boolean;
   /**
+   * The day the server is on, whichever day is being viewed. The date list
+   * needs it to say "Today" against the right row, and this is the one place
+   * that has read a clock — a list that worked it out itself would be a second
+   * answer to a question this seam exists to answer once.
+   */
+  today: IsoDate;
+  /**
    * Whether the day has not happened yet, which the route turns into a
    * redirect. It is reported here rather than worked out at the route so that
    * one read of the clock decides both this and `isToday`: two reads either
@@ -72,6 +79,7 @@ export function dayView(
 
   return {
     date,
+    today: now,
     isToday: date === now,
     // ISO dates compare as strings, which is the whole point of the format.
     isFuture: date > now,

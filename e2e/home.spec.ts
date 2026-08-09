@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, devices, type Page } from "@playwright/test";
 
 // Deliberately restated rather than imported from the targets module: the test
 // is the independent oracle for what the page should say.
@@ -43,15 +43,55 @@ test("the four stats sit side by side without wrapping", async ({ page }) => {
   }
 });
 
-test("the page does not scroll horizontally", async ({ page }) => {
-  await page.goto("/");
-
+/** The one thing a layout must never do, asserted at whatever width is in use. */
+async function expectNoHorizontalScroll(page: Page) {
   const overflows = await page.evaluate(
     () =>
       document.documentElement.scrollWidth >
       document.documentElement.clientWidth,
   );
   expect(overflows).toBe(false);
+}
+
+test("the page does not scroll horizontally", async ({ page }) => {
+  await page.goto("/");
+
+  await expectNoHorizontalScroll(page);
+});
+
+/**
+ * Where the day list is, not what is in it — its contents are the read seam's
+ * to get right, and its tests already do.
+ */
+const dayList = (page: Page) => page.locator('[data-slot="sidebar"]');
+
+test("the day list sits beside the conversation on a desktop", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  // No trigger to find it behind: it is simply there.
+  await expect(dayList(page)).toBeVisible();
+});
+
+test.describe("on a phone", () => {
+  test.use({ viewport: devices["Pixel 7"].viewport });
+
+  test("the day list is off-canvas until it is asked for", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(dayList(page)).toBeHidden();
+
+    await page.getByRole("button", { name: "Toggle Sidebar" }).click();
+
+    await expect(dayList(page)).toBeVisible();
+  });
+
+  test("the page does not scroll horizontally", async ({ page }) => {
+    await page.goto("/");
+
+    await expectNoHorizontalScroll(page);
+  });
 });
 
 test("the chat is ready to take a message", async ({ page }) => {

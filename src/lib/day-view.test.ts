@@ -169,6 +169,10 @@ describe("a day's view", () => {
     it("is false for a day behind the current one", () => {
       expect(dayView(PAST, APP_TIME_ZONE, databasePath).isToday).toBe(false);
     });
+
+    it("names the current day, so a list of dates can point at it", () => {
+      expect(dayView(PAST, AHEAD, databasePath).today).toBe(today(AHEAD));
+    });
   });
 
   describe("whether the day has happened yet", () => {

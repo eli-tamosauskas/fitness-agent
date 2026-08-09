@@ -1,6 +1,8 @@
 import { MacroRing } from "@/components/macro-ring";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import type { IsoDate, MacroTotals } from "@/lib/nutrition/food-entry";
 import { DAILY_TARGETS, MACRO_DISPLAY } from "@/lib/nutrition/targets";
+import { cn } from "@/lib/utils";
 
 export type MacroHeaderProps = {
   /** The viewed day's consumption, as derived on the server. */
@@ -23,11 +25,20 @@ export function MacroHeader({ totals, date }: MacroHeaderProps) {
   return (
     <header className="bg-card w-full border-b">
       <div className="mx-auto flex max-w-4xl flex-col gap-3 px-6 py-5">
-        {date && (
-          <p className="text-muted-foreground text-sm font-medium tabular-nums">
-            {date} log
-          </p>
-        )}
+        {/* The day list's way in on a phone, where it is off-canvas. On a
+            desktop it is already open, so the row is there only to carry the
+            date — and on today there is no date, so there is no row.
+            `md:` is Tailwind's 768px, which is the breakpoint the sidebar
+            itself becomes a sheet at; the two have to name the same width or
+            the trigger would appear beside an already-open list. */}
+        <div className={cn("flex items-center gap-2", !date && "md:hidden")}>
+          <SidebarTrigger className="md:hidden" />
+          {date && (
+            <p className="text-muted-foreground text-sm font-medium tabular-nums">
+              {date} log
+            </p>
+          )}
+        </div>
         <div className="grid grid-cols-4 gap-4">
           {MACRO_DISPLAY.map(({ key, label, unit }) => (
             <MacroRing

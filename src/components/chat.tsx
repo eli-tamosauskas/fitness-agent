@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type ChatStatus } from "ai";
 import { CameraIcon, Loader2Icon, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { deleteFoodEntry } from "@/app/actions";
 
@@ -188,13 +188,36 @@ export function Chat({
   const router = useRouter();
   const [input, setInput] = useState("");
 
-  const { messages, sendMessage, status, error } = useChat<NutritionUIMessage>({
-    messages: initialMessages,
-    transport,
-    onFinish: ({ message }) => {
-      if (wroteToTheLog(message)) router.refresh();
+  const { messages, sendMessage, status, error, stop } =
+    useChat<NutritionUIMessage>({
+      messages: initialMessages,
+      transport,
+      onFinish: ({ message }) => {
+        if (wroteToTheLog(message)) router.refresh();
+      },
+    });
+
+  /**
+   * Leaving the day drops the reply. Picking a day from the sidebar unmounts
+   * this, and a stream nobody is reading is a request still running on the
+   * server — the hook does not abort on its own. There is no resumption: the
+   * server persists whatever the reply had reached, so the record of a meal
+   * logged mid-stream survives even though the sentence does not.
+   *
+   * Held in a ref rather than depended on directly: an effect that listed
+   * `stop` would run its cleanup every time that function's identity changed,
+   * cancelling a live reply mid-render for no reason.
+   */
+  const stopStreaming = useRef(stop);
+  useEffect(() => {
+    stopStreaming.current = stop;
+  }, [stop]);
+  useEffect(
+    () => () => {
+      void stopStreaming.current();
     },
-  });
+    [],
+  );
 
   /**
    * The card's delete control. The delete lands on the server, then the server
