@@ -110,6 +110,18 @@ export function insertEntry(
   return { ...input, id: Number(lastInsertRowid), date };
 }
 
+/**
+ * Removes one entry. Reports whether there was anything to remove, so an id
+ * that has already gone — or never existed — is an answer rather than a fault.
+ */
+export function deleteEntry(path: string, id: number): boolean {
+  const { changes } = openDatabase(path)
+    .prepare(`DELETE FROM food_entries WHERE id = ?`)
+    .run(id);
+
+  return changes > 0;
+}
+
 export function entriesForDate(path: string, date: IsoDate): FoodEntry[] {
   const rows = openDatabase(path)
     .prepare(`SELECT * FROM food_entries WHERE date = ? ORDER BY id`)

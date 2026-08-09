@@ -55,6 +55,7 @@ describe("nutrition tools", () => {
     expect(summary).toEqual({
       date: TODAY,
       totals: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+      entries: [],
     });
   });
 
@@ -187,6 +188,118 @@ describe("nutrition tools", () => {
     });
   });
 
+  /**
+   * Chat-driven deletion is summary-then-delete: the conversation is
+   * disposable, so the ids the agent needs have to come back out of the log
+   * itself before anything can be removed by one.
+   */
+  describe("deleting an entry", () => {
+    it("itemises the day's entries with their ids alongside the totals", async () => {
+      await tools.logFoodEntry(STATED_MEAL);
+      await tools.logFoodEntry({ ...STATED_MEAL, description: "greek yogurt" });
+
+      const summary = await tools.getDailySummary({ date: TODAY });
+
+      expect(summary.entries).toEqual([
+        expect.objectContaining({
+          id: expect.any(Number),
+          description: "chicken burrito",
+        }),
+        expect.objectContaining({
+          id: expect.any(Number),
+          description: "greek yogurt",
+        }),
+      ]);
+    });
+
+    it("reports what each entry actually contributed, not its base figures", async () => {
+      await tools.logFoodEntry({
+        ...STATED_MEAL,
+        description: "granola",
+        source: "label",
+        quantity: 60,
+        unit: "g",
+        calories: 450,
+        protein: 10,
+        carbs: 60,
+        fat: 18,
+      });
+
+      const [entry] = (await tools.getDailySummary({ date: TODAY })).entries;
+
+      expect(entry.consumed).toEqual({
+        calories: 270,
+        protein: 6,
+        carbs: 36,
+        fat: 10.8,
+      });
+    });
+
+    it("drops the deleted entry out of the totals", async () => {
+      await tools.logFoodEntry(STATED_MEAL);
+      await tools.logFoodEntry({ ...STATED_MEAL, description: "greek yogurt" });
+
+      const { entries } = await tools.getDailySummary({ date: TODAY });
+      const yogurt = entries.find((e) => e.description === "greek yogurt")!;
+      await tools.deleteFoodEntry({ id: yogurt.id });
+
+      const after = await tools.getDailySummary({ date: TODAY });
+      expect(after.totals.calories).toBe(400);
+      expect(after.entries.map((e) => e.description)).toEqual([
+        "chicken burrito",
+      ]);
+    });
+
+    it("says so rather than failing when the id is not in the log", async () => {
+      await tools.logFoodEntry(STATED_MEAL);
+
+      const result = await tools.deleteFoodEntry({ id: 9999 });
+
+      expect(result.deleted).toBe(false);
+      const summary = await tools.getDailySummary({ date: TODAY });
+      expect(summary.totals.calories).toBe(400);
+    });
+
+    it("does not delete the same entry twice", async () => {
+      const entry = await tools.logFoodEntry(STATED_MEAL);
+
+      expect((await tools.deleteFoodEntry({ id: entry.id })).deleted).toBe(
+        true,
+      );
+      expect((await tools.deleteFoodEntry({ id: entry.id })).deleted).toBe(
+        false,
+      );
+    });
+
+    /** Correcting a wrong amount, which is the only path there is. */
+    it("totals the corrected entry after a delete and re-log", async () => {
+      const wrong = await tools.logFoodEntry({ ...STATED_MEAL, quantity: 2 });
+      await tools.deleteFoodEntry({ id: wrong.id });
+      await tools.logFoodEntry({ ...STATED_MEAL, quantity: 1 });
+
+      const summary = await tools.getDailySummary({ date: TODAY });
+
+      expect(summary.totals).toEqual({
+        calories: 400,
+        protein: 30,
+        carbs: 40,
+        fat: 12,
+      });
+      expect(summary.entries).toHaveLength(1);
+    });
+
+    it("leaves another day's entries alone", async () => {
+      const entry = await tools.logFoodEntry(STATED_MEAL);
+      await tools.deleteFoodEntry({ id: entry.id });
+
+      // Nothing was logged for yesterday, so the guarantee worth asserting is
+      // that a delete does not reach past the row it names.
+      expect(
+        (await tools.getDailySummary({ date: "2026-05-12" })).entries,
+      ).toEqual([]);
+    });
+  });
+
   describe("input validation", () => {
     const rejects = async (input: Record<string, unknown>) => {
       await expect(tools.logFoodEntry(input)).rejects.toThrow();
@@ -223,6 +336,12 @@ describe("nutrition tools", () => {
     it("rejects a summary request for a malformed date", async () => {
       await expect(
         tools.getDailySummary({ date: "13th May" }),
+      ).rejects.toThrow();
+    });
+
+    it("rejects a deletion of something that is not an id", async () => {
+      await expect(
+        tools.deleteFoodEntry({ id: "the yogurt" }),
       ).rejects.toThrow();
     });
 

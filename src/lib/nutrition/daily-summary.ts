@@ -1,10 +1,16 @@
 import { defaultDatabasePath, entriesForDate } from "./database";
-import type { IsoDate, MacroTotals } from "./food-entry";
-import { totalsFor } from "./totals";
+import type { IsoDate, LoggedEntry, MacroTotals } from "./food-entry";
+import { asLoggedEntry, totalsFor } from "./totals";
 
 export type DailySummary = {
   date: IsoDate;
   totals: MacroTotals;
+  /**
+   * The day itemised, each entry carrying its id. Deleting from chat is
+   * summary-then-delete — the conversation is disposable, so this is the only
+   * place the agent can learn which id "the yogurt" is.
+   */
+  entries: LoggedEntry[];
 };
 
 /**
@@ -16,5 +22,11 @@ export function dailySummary(
   date: IsoDate,
   databasePath: string = defaultDatabasePath(),
 ): DailySummary {
-  return { date, totals: totalsFor(entriesForDate(databasePath, date)) };
+  const entries = entriesForDate(databasePath, date);
+
+  return {
+    date,
+    totals: totalsFor(entries),
+    entries: entries.map(asLoggedEntry),
+  };
 }

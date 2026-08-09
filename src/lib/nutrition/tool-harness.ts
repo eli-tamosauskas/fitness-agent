@@ -6,8 +6,12 @@ import { asSchema } from "ai";
 
 import type { DailySummary } from "./daily-summary";
 import { closeDatabase } from "./database";
-import type { FoodEntry, IsoDate } from "./food-entry";
-import { createNutritionTools, type NutritionTools } from "./tools";
+import type { IsoDate, LoggedEntry } from "./food-entry";
+import {
+  createNutritionTools,
+  type DeletionResult,
+  type NutritionTools,
+} from "./tools";
 import type { UsdaLookupResult } from "./usda";
 
 type NutritionTool = NutritionTools[keyof NutritionTools];
@@ -41,9 +45,10 @@ async function callTool<Output>(
 export type ToolHarness = {
   /** The local day the harness's writes land on. */
   today: IsoDate;
-  logFoodEntry(input: unknown): Promise<FoodEntry>;
+  logFoodEntry(input: unknown): Promise<LoggedEntry>;
   lookUpUsdaFood(input: unknown): Promise<UsdaLookupResult>;
   getDailySummary(input: unknown): Promise<DailySummary>;
+  deleteFoodEntry(input: unknown): Promise<DeletionResult>;
   dispose(): void;
 };
 
@@ -76,11 +81,13 @@ export function createToolHarness({
 
   return {
     today,
-    logFoodEntry: (input) => callTool<FoodEntry>(tools.logFoodEntry, input),
+    logFoodEntry: (input) => callTool<LoggedEntry>(tools.logFoodEntry, input),
     lookUpUsdaFood: (input) =>
       callTool<UsdaLookupResult>(tools.lookUpUsdaFood, input),
     getDailySummary: (input) =>
       callTool<DailySummary>(tools.getDailySummary, input),
+    deleteFoodEntry: (input) =>
+      callTool<DeletionResult>(tools.deleteFoodEntry, input),
     dispose: () => {
       closeDatabase(databasePath);
       rmSync(directory, { recursive: true, force: true });

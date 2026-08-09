@@ -50,6 +50,12 @@ function systemPrompt(today: IsoDate): string {
     "If the lookup returns found: false, tell the user it failed and log nothing.",
     "If the label is unreadable — blurred, cropped, or not a nutrition panel — say so and ask for another",
     "photo. Never invent figures you cannot read, and never log an entry from a label you could not read.",
+    "When the user asks to remove something they describe in words — 'delete the yogurt' —",
+    "call getDailySummary for today first to find which entry they mean and get its id, then",
+    "call deleteFoodEntry with that id. Never guess an id. If nothing on the day matches what",
+    "they described, say so instead of deleting something else; if more than one entry could be",
+    "what they meant, ask which. There is no way to edit an entry: a wrong amount is corrected",
+    "by deleting it and logging the food again.",
     "Keep replies to a sentence or two.",
   ].join("\n");
 }

@@ -1,6 +1,6 @@
 # Entry cards and deletion
 
-Status: ready-for-agent
+Status: resolved
 
 ## Parent
 
@@ -20,14 +20,14 @@ Correcting a wrong amount is delete-and-re-log. There is deliberately no update-
 
 ## Acceptance criteria
 
-- [ ] Every committed entry renders as a card in the chat with its resolved macros
-- [ ] The daily summary tool returns itemized entries with their ids alongside the totals
-- [ ] Dismissing a card deletes that entry, and the rings drop to match
-- [ ] Describing an entry in chat deletes it, resolved via summary-then-delete
-- [ ] A test at the tool seam confirms a summary returns ids and that deleting by one of those ids removes it from subsequent totals
-- [ ] Deleting an id that does not exist behaves predictably rather than crashing
-- [ ] Deleting then re-logging produces the corrected totals
-- [ ] `npm run check` passes
+- [x] Every committed entry renders as a card in the chat with its resolved macros
+- [x] The daily summary tool returns itemized entries with their ids alongside the totals
+- [x] Dismissing a card deletes that entry, and the rings drop to match
+- [x] Describing an entry in chat deletes it, resolved via summary-then-delete
+- [x] A test at the tool seam confirms a summary returns ids and that deleting by one of those ids removes it from subsequent totals
+- [x] Deleting an id that does not exist behaves predictably rather than crashing
+- [x] Deleting then re-logging produces the corrected totals
+- [x] `npm run check` passes
 
 ## Blocked by
 

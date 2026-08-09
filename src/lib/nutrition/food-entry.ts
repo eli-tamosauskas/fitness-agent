@@ -88,3 +88,12 @@ export type FoodEntry = FoodEntryInput & {
   id: number;
   date: IsoDate;
 };
+
+/**
+ * An entry as it is shown back — to the user on a card, and to the agent in a
+ * summary. The nutrients on the entry itself are the base figures; `consumed`
+ * is what they came to once the amount was applied.
+ */
+export type LoggedEntry = FoodEntry & {
+  consumed: MacroTotals;
+};

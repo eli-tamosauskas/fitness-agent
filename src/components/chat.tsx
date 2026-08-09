@@ -1,10 +1,12 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import type { ChatStatus } from "ai";
+import type { ChatStatus, InferUITools, UIDataTypes, UIMessage } from "ai";
 import { CameraIcon, Loader2Icon, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { deleteFoodEntry } from "@/app/actions";
 
 import {
   Attachment,
@@ -23,6 +25,7 @@ import {
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message";
+import { EntryCard } from "@/components/entry-card";
 import {
   PromptInput,
   PromptInputButton,
@@ -38,11 +41,31 @@ import { LOCAL_DATE_COOKIE, localToday } from "@/lib/nutrition/local-date";
 import type { NutritionTools } from "@/lib/nutrition/tools";
 
 /**
- * The part name the write tool streams back: `tool-` + the tool's key. Tied to
- * the tool set, so renaming the tool breaks the build rather than quietly
- * leaving the rings stale.
+ * The chat's messages, typed by the tools behind them, so a tool part's output
+ * is the tool's own return type rather than something to be cast.
  */
-const LOG_TOOL_PART = `tool-${"logFoodEntry" satisfies keyof NutritionTools}`;
+type NutritionUIMessage = UIMessage<
+  unknown,
+  UIDataTypes,
+  InferUITools<NutritionTools>
+>;
+
+/**
+ * The part names the write tools stream back: `tool-` + the tool's key. Tied to
+ * the tool set, so renaming a tool breaks the build rather than quietly leaving
+ * the rings stale.
+ */
+const LOG_TOOL_PART =
+  `tool-${"logFoodEntry" satisfies keyof NutritionTools}` as const;
+const DELETE_TOOL_PART =
+  `tool-${"deleteFoodEntry" satisfies keyof NutritionTools}` as const;
+
+/** Whether a message did something the rings would have to catch up with. */
+function wroteToTheLog(message: NutritionUIMessage): boolean {
+  return message.parts.some(
+    (part) => part.type === LOG_TOOL_PART || part.type === DELETE_TOOL_PART,
+  );
+}
 
 /** Whether a reply is on its way, which is when the composer stops accepting. */
 function isResponding(status: ChatStatus): boolean {
@@ -134,12 +157,21 @@ export function Chat({ renderedDate }: ChatProps) {
   const router = useRouter();
   const [input, setInput] = useState("");
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error } = useChat<NutritionUIMessage>({
     onFinish: ({ message }) => {
-      const wrote = message.parts.some((part) => part.type === LOG_TOOL_PART);
-      if (wrote) router.refresh();
+      if (wroteToTheLog(message)) router.refresh();
     },
   });
+
+  /**
+   * The card's delete control. The delete lands on the server, then the server
+   * re-derives the totals — the rings drop out of that, not out of any sum kept
+   * here.
+   */
+  const deleteEntry = async (id: number) => {
+    await deleteFoodEntry(id);
+    router.refresh();
+  };
 
   // Tell the server which day the browser is on. Only the browser knows.
   useEffect(() => {
@@ -181,6 +213,21 @@ export function Chat({ renderedDate }: ChatProps) {
                     if (part.type === "text") {
                       return (
                         <MessageResponse key={key}>{part.text}</MessageResponse>
+                      );
+                    }
+
+                    // A committed entry, shown back with what it actually
+                    // contributed and a one-click way to take it off again.
+                    if (
+                      part.type === LOG_TOOL_PART &&
+                      part.state === "output-available"
+                    ) {
+                      return (
+                        <EntryCard
+                          key={key}
+                          entry={part.output}
+                          onDelete={deleteEntry}
+                        />
                       );
                     }
 
