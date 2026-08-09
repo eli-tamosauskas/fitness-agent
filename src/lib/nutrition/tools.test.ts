@@ -54,6 +54,7 @@ describe("nutrition tools", () => {
 
     expect(summary).toEqual({
       date: TODAY,
+      tracked: false,
       totals: { calories: 0, protein: 0, carbs: 0, fat: 0 },
       entries: [],
     });
@@ -297,6 +298,84 @@ describe("nutrition tools", () => {
       expect(
         (await tools.getDailySummary({ date: "2026-05-12" })).entries,
       ).toEqual([]);
+    });
+  });
+
+  /**
+   * Past days are read-only. The agent resolves whatever the user said —
+   * "yesterday", "the 13th of May" — to a date before it gets here, so all the
+   * tools have to offer is any single day's totals and items.
+   */
+  describe("asking about a past day", () => {
+    const YESTERDAY = "2026-05-12";
+
+    it("returns that day's totals, not today's", async () => {
+      await tools.onDay(YESTERDAY).logFoodEntry(STATED_MEAL);
+      await tools.logFoodEntry({ ...STATED_MEAL, description: "granola bar" });
+
+      const summary = await tools.getDailySummary({ date: YESTERDAY });
+
+      expect(summary.date).toBe(YESTERDAY);
+      expect(summary.totals).toEqual({
+        calories: 400,
+        protein: 30,
+        carbs: 40,
+        fat: 12,
+      });
+    });
+
+    it("itemises what was eaten that day", async () => {
+      const yesterday = tools.onDay(YESTERDAY);
+      await yesterday.logFoodEntry(STATED_MEAL);
+      await yesterday.logFoodEntry({
+        ...STATED_MEAL,
+        description: "greek yogurt",
+      });
+
+      const summary = await tools.getDailySummary({ date: YESTERDAY });
+
+      expect(summary.entries.map((entry) => entry.description)).toEqual([
+        "chicken burrito",
+        "greek yogurt",
+      ]);
+      expect(summary.tracked).toBe(true);
+    });
+
+    it("reports a day that was never tracked as zeros rather than failing", async () => {
+      await tools.logFoodEntry(STATED_MEAL);
+
+      const summary = await tools.getDailySummary({ date: "2026-04-01" });
+
+      expect(summary.tracked).toBe(false);
+      expect(summary.totals).toEqual({
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+      });
+      expect(summary.entries).toEqual([]);
+    });
+
+    it("will not delete an entry off a past day", async () => {
+      const entry = await tools.onDay(YESTERDAY).logFoodEntry(STATED_MEAL);
+
+      const result = await tools.deleteFoodEntry({ id: entry.id });
+
+      expect(result.deleted).toBe(false);
+      expect(
+        (await tools.getDailySummary({ date: YESTERDAY })).totals.calories,
+      ).toBe(400);
+    });
+
+    it("cannot be back-dated: a logged entry lands on today whatever date it names", async () => {
+      await tools.logFoodEntry({ ...STATED_MEAL, date: YESTERDAY });
+
+      expect(
+        (await tools.getDailySummary({ date: YESTERDAY })).entries,
+      ).toEqual([]);
+      expect(
+        (await tools.getDailySummary({ date: TODAY })).entries,
+      ).toHaveLength(1);
     });
   });
 

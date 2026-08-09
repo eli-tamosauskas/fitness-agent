@@ -42,13 +42,23 @@ async function callTool<Output>(
   });
 }
 
-export type ToolHarness = {
-  /** The local day the harness's writes land on. */
+/** The four tools, bound to one local day. */
+export type BoundTools = {
+  /** The local day these tools' writes land on. */
   today: IsoDate;
   logFoodEntry(input: unknown): Promise<LoggedEntry>;
   lookUpUsdaFood(input: unknown): Promise<UsdaLookupResult>;
   getDailySummary(input: unknown): Promise<DailySummary>;
   deleteFoodEntry(input: unknown): Promise<DeletionResult>;
+};
+
+export type ToolHarness = BoundTools & {
+  /**
+   * The same log seen from a different local day. Writes are today-only by
+   * construction, so this is the only way a test can put anything on a past
+   * day: it is the user having logged it back when that day was today.
+   */
+  onDay(date: IsoDate): BoundTools;
   dispose(): void;
 };
 
@@ -68,26 +78,34 @@ export function createToolHarness({
 }: ToolHarnessOptions): ToolHarness {
   const directory = mkdtempSync(join(tmpdir(), "nutrition-"));
   const databasePath = join(directory, "nutrition.db");
-  const tools = createNutritionTools({
-    today,
-    databasePath,
-    usda: {
-      // Supplied because a lookup with no key short-circuits before it asks
-      // the fake anything.
-      apiKey: "test-api-key",
-      fetch: fetchImpl,
-    },
-  });
+
+  const boundTo = (day: IsoDate): BoundTools => {
+    const tools = createNutritionTools({
+      today: day,
+      databasePath,
+      usda: {
+        // Supplied because a lookup with no key short-circuits before it asks
+        // the fake anything.
+        apiKey: "test-api-key",
+        fetch: fetchImpl,
+      },
+    });
+
+    return {
+      today: day,
+      logFoodEntry: (input) => callTool<LoggedEntry>(tools.logFoodEntry, input),
+      lookUpUsdaFood: (input) =>
+        callTool<UsdaLookupResult>(tools.lookUpUsdaFood, input),
+      getDailySummary: (input) =>
+        callTool<DailySummary>(tools.getDailySummary, input),
+      deleteFoodEntry: (input) =>
+        callTool<DeletionResult>(tools.deleteFoodEntry, input),
+    };
+  };
 
   return {
-    today,
-    logFoodEntry: (input) => callTool<LoggedEntry>(tools.logFoodEntry, input),
-    lookUpUsdaFood: (input) =>
-      callTool<UsdaLookupResult>(tools.lookUpUsdaFood, input),
-    getDailySummary: (input) =>
-      callTool<DailySummary>(tools.getDailySummary, input),
-    deleteFoodEntry: (input) =>
-      callTool<DeletionResult>(tools.deleteFoodEntry, input),
+    ...boundTo(today),
+    onDay: boundTo,
     dispose: () => {
       closeDatabase(databasePath);
       rmSync(directory, { recursive: true, force: true });

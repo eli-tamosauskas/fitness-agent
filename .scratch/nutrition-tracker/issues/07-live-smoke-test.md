@@ -19,12 +19,16 @@ Steps:
 3. Reload → rings still correct, chat cleared.
 4. "What did I eat today?" → itemized answer. "Delete the kiwi" → removed, rings drop.
 5. Ask about a date with no data → zero report, no error.
+6. Ask about a day that does have entries, by explicit date ("how did I do on the 13th of May") → that day's four totals, and the itemized entries when asked what was eaten.
+7. Ask the same thing relatively ("what did I eat yesterday", "how did I do last Tuesday") → the right day, with the resolved `YYYY-MM-DD` written out in the reply so a misread date is catchable.
+
+Steps 6 and 7 are the only check there is on relative-date resolution and the echoed date: both are model behavior, and there is nothing below the tool seam to test them with. Step 7 needs a day with data behind it — either run it a day after step 1, or log something and come back.
 
 Note anything where the vision read or the USDA top pick was wrong. Auto-commit is a deliberate bet that both are right most of the time and that a visible card plus one-click dismissal is cheaper than confirming every entry — if accuracy turns out worse than expected, adding a confirmation step is a contained change and this is where that evidence gets recorded.
 
 ## Acceptance criteria
 
-- [ ] All five steps run against live keys and real inputs
+- [ ] All seven steps run against live keys and real inputs
 - [ ] Results reported in this issue's comments, step by step, including anything that misread or mismatched
 - [ ] Any defect found is filed as its own issue rather than fixed silently here
 

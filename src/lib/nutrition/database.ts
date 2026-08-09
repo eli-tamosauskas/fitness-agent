@@ -113,11 +113,19 @@ export function insertEntry(
 /**
  * Removes one entry. Reports whether there was anything to remove, so an id
  * that has already gone — or never existed — is an answer rather than a fault.
+ *
+ * The delete is confined to `onDate`, which is how past data is kept read-only:
+ * an id read out of an old day's summary matches nothing. Every caller names
+ * the day, so there is no way to reach backwards by omitting it.
  */
-export function deleteEntry(path: string, id: number): boolean {
+export function deleteEntry(
+  path: string,
+  id: number,
+  onDate: IsoDate,
+): boolean {
   const { changes } = openDatabase(path)
-    .prepare(`DELETE FROM food_entries WHERE id = ?`)
-    .run(id);
+    .prepare(`DELETE FROM food_entries WHERE id = ? AND date = ?`)
+    .run(id, onDate);
 
   return changes > 0;
 }

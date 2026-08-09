@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 
 import { isoDateSchema, type IsoDate } from "@/lib/nutrition/food-entry";
+import { describeIsoDate } from "@/lib/nutrition/local-date";
 import { DAILY_TARGETS } from "@/lib/nutrition/targets";
 import { createNutritionTools } from "@/lib/nutrition/tools";
 
@@ -26,7 +27,7 @@ const chatRequestSchema = z.object({
 function systemPrompt(today: IsoDate): string {
   return [
     "You are a nutrition logging assistant for a single user.",
-    `Today is ${today}. Never guess the date from anything else.`,
+    `Today is ${describeIsoDate(today)}. Never guess the date from anything else.`,
     "The user's daily targets are " +
       `${DAILY_TARGETS.calories} calories, ${DAILY_TARGETS.protein}g protein, ` +
       `${DAILY_TARGETS.carbs}g carbs and ${DAILY_TARGETS.fat}g fat.`,
@@ -56,6 +57,16 @@ function systemPrompt(today: IsoDate): string {
     "they described, say so instead of deleting something else; if more than one entry could be",
     "what they meant, ask which. There is no way to edit an entry: a wrong amount is corrected",
     "by deleting it and logging the food again.",
+    "When the user asks about a day — 'how did I do on the 13th of May', 'what did I eat",
+    "yesterday' — work out the YYYY-MM-DD date yourself from today's date and weekday above,",
+    "then call getDailySummary with it. Always write the resolved date out in your reply",
+    "('On Tuesday 2026-05-12 you had…') so the user can catch a date you read wrong.",
+    "Give the four totals, and list the entries too when they ask what they ate.",
+    "If tracked is false, say plainly that nothing was logged that day — it is an untracked",
+    "day, not an error and not a day of zero calories.",
+    "Past days are read-only, one day at a time: no ranges, no totals across weeks. You cannot",
+    "log or delete anything on a past day, only today. If the user asks you to add something to",
+    "an earlier day, say that entries can only be logged for today.",
     "Keep replies to a sentence or two.",
   ].join("\n");
 }

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { parseLocalDate } from "./local-date";
 import type { MacroKey } from "./targets";
 
 /**
@@ -15,7 +16,7 @@ export const isoDateSchema = z
   // that does not exist.
   .refine((value) => {
     const [year, month, day] = value.split("-").map(Number);
-    const moment = new Date(year, month - 1, day);
+    const moment = parseLocalDate(value);
     return (
       moment.getFullYear() === year &&
       moment.getMonth() === month - 1 &&

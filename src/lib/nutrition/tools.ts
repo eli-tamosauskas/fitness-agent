@@ -71,9 +71,11 @@ export function createNutritionTools({
     getDailySummary: tool({
       description:
         "Get the calorie and macro totals for a single day, plus every entry logged that " +
-        "day with its id. Resolve any relative date the user gives to a YYYY-MM-DD date " +
-        "first. Call this before deleting something the user described in words: the ids " +
-        "it returns are the only way to name an entry.",
+        "day with its id. Works for today and for any past day — one day at a time, never " +
+        "a range. Resolve any relative date the user gives to a YYYY-MM-DD date first. " +
+        "If tracked is false nothing was ever logged that day: report it as an untracked " +
+        "day, not as a failure. Call this before deleting something the user described in " +
+        "words: the ids it returns are the only way to name an entry.",
       inputSchema: z.object({
         date: isoDateSchema.describe("The day to summarise, as YYYY-MM-DD"),
       }),
@@ -82,8 +84,9 @@ export function createNutritionTools({
 
     deleteFoodEntry: tool({
       description:
-        "Remove one entry from the log by its id. Get the id from getDailySummary first — " +
-        "never guess one. There is no way to edit an entry: a wrong amount is corrected by " +
+        "Remove one entry from today's log by its id. Get the id from getDailySummary first — " +
+        "never guess one. Only today can be changed: an id from a past day's summary will not " +
+        "delete. There is no way to edit an entry: a wrong amount is corrected by " +
         "deleting it and logging it again.",
       inputSchema: z.object({
         id: z
@@ -94,12 +97,14 @@ export function createNutritionTools({
           ),
       }),
       execute: ({ id }): DeletionResult =>
-        deleteEntry(databasePath, id)
+        deleteEntry(databasePath, id, today)
           ? { deleted: true, id, message: `Entry ${id} was removed.` }
           : {
               deleted: false,
               id,
-              message: `There is no entry ${id} in the log — it may already have been removed.`,
+              message:
+                `There is no entry ${id} in today's log — it may already have been ` +
+                `removed, or it belongs to an earlier day, which cannot be changed.`,
             },
     }),
   };

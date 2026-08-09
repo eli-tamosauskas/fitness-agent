@@ -4,6 +4,12 @@ import { asLoggedEntry, totalsFor } from "./totals";
 
 export type DailySummary = {
   date: IsoDate;
+  /**
+   * Whether anything was ever logged on this day. A day with nothing on it is
+   * an untracked day, not a day of zero calories, and asking about one is a
+   * normal question rather than a failure.
+   */
+  tracked: boolean;
   totals: MacroTotals;
   /**
    * The day itemised, each entry carrying its id. Deleting from chat is
@@ -26,6 +32,7 @@ export function dailySummary(
 
   return {
     date,
+    tracked: entries.length > 0,
     totals: totalsFor(entries),
     entries: entries.map(asLoggedEntry),
   };
