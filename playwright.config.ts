@@ -21,7 +21,7 @@ export default defineConfig({
   webServer: {
     command: process.env.CI ? "npm run build && npm run start" : "npm run dev",
     url: baseURL,
-    // Keeps e2e runs out of the real log. Removed before each run by
+    // Keeps e2e runs out of the real log. Emptied before each run by
     // globalSetup, so the rings start at zero.
     env: { NUTRITION_DB_PATH: E2E_DATABASE_PATH },
     reuseExistingServer: !process.env.CI,

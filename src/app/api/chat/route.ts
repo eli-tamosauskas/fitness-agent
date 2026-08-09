@@ -1,13 +1,19 @@
 import {
+  consumeStream,
   convertToModelMessages,
+  createIdGenerator,
   createUIMessageStreamResponse,
   isStepCount,
   streamText,
   toUIMessageStream,
-  type UIMessage,
 } from "ai";
 import { z } from "zod";
 
+import {
+  conversationFor,
+  saveConversation,
+} from "@/lib/chat/conversation-store";
+import type { NutritionUIMessage } from "@/lib/chat/message";
 import type { IsoDate } from "@/lib/nutrition/food-entry";
 import {
   APP_TIME_ZONE,
@@ -22,8 +28,13 @@ const MODEL = "anthropic/claude-sonnet-5";
 
 export const maxDuration = 30;
 
+/**
+ * Only the new message arrives. The rest of the day is on the server already,
+ * and re-sending it would mean trusting the client with history it could edit
+ * — and shipping a label photo back up with every subsequent message.
+ */
 const chatRequestSchema = z.object({
-  messages: z.array(z.custom<UIMessage>()),
+  message: z.custom<NutritionUIMessage>(),
 });
 
 function systemPrompt(date: IsoDate): string {
@@ -73,27 +84,64 @@ function systemPrompt(date: IsoDate): string {
   ].join("\n");
 }
 
+/**
+ * Whether there is anything in a message worth keeping. A stream abandoned
+ * before the model said anything ends with an empty reply, and an empty bubble
+ * on reload is a record of nothing.
+ */
+function saysSomething(message: NutritionUIMessage): boolean {
+  return message.parts.length > 0;
+}
+
 export async function POST(request: Request) {
   const parsed = chatRequestSchema.safeParse(await request.json());
   if (!parsed.success) {
     return new Response("Malformed chat request", { status: 400 });
   }
 
-  const { messages } = parsed.data;
-  // The day is the server's, so a request cannot name one: the prompt and the
-  // tools both read the same derived date.
+  // The day is the server's, so a request cannot name one: the prompt, the
+  // tools and both conversation writes read the same derived date. Deriving it
+  // once holds an exchange together — a reply that lands after midnight belongs
+  // to the conversation it answers, not to the day it happened to finish on.
   const date = today(APP_TIME_ZONE);
+
+  // The day so far, plus what was just said. Persisted before the model is
+  // called, so a message survives even a request that never gets a reply.
+  const conversation = [...conversationFor(date), parsed.data.message];
+  saveConversation(date, conversation);
 
   const result = streamText({
     model: MODEL,
     system: systemPrompt(date),
-    messages: await convertToModelMessages(messages),
+    messages: await convertToModelMessages(conversation),
     // Enough steps for the model to log an entry and then say what it logged.
     stopWhen: isStepCount(5),
     tools: createNutritionTools({ today: date }),
   });
 
   return createUIMessageStreamResponse({
-    stream: toUIMessageStream({ stream: result.stream }),
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: conversation,
+      /**
+       * Runs when the stream ends however it ends — finished, errored, or
+       * abandoned by the browser — so a partial reply is kept rather than lost.
+       * `logFoodEntry` commits mid-stream, so dropping the partial would leave
+       * the rings showing a meal that no message in the day explains.
+       *
+       * Not in a transaction with the write above: the two are separated by
+       * however long the model takes.
+       */
+      onEnd: ({ messages }) => {
+        saveConversation(date, messages.filter(saysSomething));
+      },
+      // Persisted messages need ids that were decided before they were stored:
+      // the response message is otherwise given an empty one, and a day with
+      // two replies in it would have two messages claiming to be the same.
+      generateMessageId: createIdGenerator({ prefix: "msg", size: 16 }),
+    }),
+    // Without this an abandoned stream is never drained, so the end callback
+    // above never runs and the partial reply is the thing that gets lost.
+    consumeSseStream: consumeStream,
   });
 }

@@ -48,18 +48,18 @@ File parts are out of scope here; they are handled in `03-label-photo-markers.md
 
 ## Acceptance criteria
 
-- [ ] A conversation-store module, separate from the food log module, exposes a function that upserts a day's conversation and a function that reads one back
-- [ ] Tests cover: round-tripping a day; upserting the same day twice replacing rather than duplicating; and a day with no conversation reading back as empty rather than erroring
-- [ ] The user's message is persisted on arrival at the chat route, before the model is called
-- [ ] The assistant's message is persisted when the stream finishes
-- [ ] A stream that errors or aborts persists the partial assistant message, so a mid-stream `logFoodEntry` is never left with rings that no message explains
-- [ ] The two writes are not wrapped in a shared transaction
-- [ ] The day a message is written to comes from the server's current day at write time
-- [ ] The page renders the day's persisted conversation as the chat's initial messages
-- [ ] The persisted conversation is sent to the model, so the agent can act on something the user said earlier the same day
-- [ ] The daily-summary function keeps its current shape and does **not** gain messages
-- [ ] The false "the conversation is disposable" comment in the daily-summary module is corrected
-- [ ] A Playwright spec against the existing temporary-database global setup sends a message, reloads, and asserts it is still there
+- [x] A conversation-store module, separate from the food log module, exposes a function that upserts a day's conversation and a function that reads one back
+- [x] Tests cover: round-tripping a day; upserting the same day twice replacing rather than duplicating; and a day with no conversation reading back as empty rather than erroring
+- [x] The user's message is persisted on arrival at the chat route, before the model is called
+- [x] The assistant's message is persisted when the stream finishes
+- [x] A stream that errors or aborts persists the partial assistant message, so a mid-stream `logFoodEntry` is never left with rings that no message explains
+- [x] The two writes are not wrapped in a shared transaction
+- [x] The day a message is written to comes from the server's current day at write time
+- [x] The page renders the day's persisted conversation as the chat's initial messages
+- [x] The persisted conversation is sent to the model, so the agent can act on something the user said earlier the same day
+- [x] The daily-summary function keeps its current shape and does **not** gain messages
+- [x] The false "the conversation is disposable" comment in the daily-summary module is corrected
+- [x] A Playwright spec against the existing temporary-database global setup sends a message, reloads, and asserts it is still there
 
 ## Blocked by
 

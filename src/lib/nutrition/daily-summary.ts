@@ -13,8 +13,10 @@ export type DailySummary = {
   totals: MacroTotals;
   /**
    * The day itemised, each entry carrying its id. Deleting from chat is
-   * summary-then-delete — the conversation is disposable, so this is the only
-   * place the agent can learn which id "the yogurt" is.
+   * summary-then-delete. The conversation now persists, so the old reason —
+   * that it was disposable — no longer holds; the flow stays because a
+   * conversation is a history of what was logged and this is the only view of
+   * what is still logged, after entries have come and gone.
    */
   entries: LoggedEntry[];
 };

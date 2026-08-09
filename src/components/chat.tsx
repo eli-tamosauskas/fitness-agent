@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import type { ChatStatus, InferUITools, UIDataTypes, UIMessage } from "ai";
+import { DefaultChatTransport, type ChatStatus } from "ai";
 import { CameraIcon, Loader2Icon, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -36,17 +36,8 @@ import {
   usePromptInputAttachments,
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
+import type { NutritionUIMessage } from "@/lib/chat/message";
 import type { NutritionTools } from "@/lib/nutrition/tools";
-
-/**
- * The chat's messages, typed by the tools behind them, so a tool part's output
- * is the tool's own return type rather than something to be cast.
- */
-type NutritionUIMessage = UIMessage<
-  unknown,
-  UIDataTypes,
-  InferUITools<NutritionTools>
->;
 
 /**
  * The part names the write tools stream back: `tool-` + the tool's key. Tied to
@@ -141,20 +132,42 @@ function ComposerSubmit({
 }
 
 /**
+ * Only the newest message goes up. The server holds the day's conversation and
+ * appends to it, so history is neither re-sent nor open to being rewritten from
+ * here — and a label photo is uploaded once rather than with every message that
+ * follows it.
+ */
+const transport = new DefaultChatTransport<NutritionUIMessage>({
+  api: "/api/chat",
+  prepareSendMessagesRequest: ({ messages }) => ({
+    body: { message: messages[messages.length - 1] },
+  }),
+});
+
+/**
  * The chat. It sends no date: which day an entry lands on is the server's to
  * decide. When a stream finishes in which something was logged, the server is
  * asked to re-derive the totals — the client never adds anything up itself.
  *
- * A tab left open across midnight therefore keeps yesterday's header until it
- * navigates or reloads. Nothing is mis-recorded — the server stamps each write
- * with its own day — and a clock on the client is exactly the machinery this
- * arrangement exists to avoid.
+ * The day's conversation arrives already written, read from the server, so a
+ * reload resumes rather than restarts.
+ *
+ * A tab left open across midnight keeps yesterday's header until it navigates
+ * or reloads. Nothing is mis-recorded — the server stamps each write with its
+ * own day — and a clock on the client is exactly the machinery this arrangement
+ * exists to avoid.
  */
-export function Chat() {
+export function Chat({
+  initialMessages,
+}: {
+  initialMessages: NutritionUIMessage[];
+}) {
   const router = useRouter();
   const [input, setInput] = useState("");
 
   const { messages, sendMessage, status, error } = useChat<NutritionUIMessage>({
+    messages: initialMessages,
+    transport,
     onFinish: ({ message }) => {
       if (wroteToTheLog(message)) router.refresh();
     },
