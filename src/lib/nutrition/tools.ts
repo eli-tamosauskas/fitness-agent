@@ -24,8 +24,8 @@ export type DeletionResult = {
 
 export type NutritionToolsOptions = {
   /**
-   * The user's local day, as computed by their browser. Every write lands
-   * here: there is no back-dating, so the tools take no date to write to.
+   * The current day, as the server derived it. Every write lands here: there
+   * is no back-dating, so the tools take no date to write to.
    */
   today: IsoDate;
   databasePath?: string;

@@ -6,8 +6,10 @@ import type { MacroKey } from "./targets";
 /**
  * A local calendar day as `YYYY-MM-DD`.
  *
- * Which day it is is always decided by the browser and carried inwards; the
- * server never asks its own clock.
+ * Which day a write lands on is always decided by the server, from a named
+ * timezone; the browser never says, and cannot. This schema still guards the
+ * dates that arrive from outside for reads — the day the agent asks a summary
+ * for is one it resolved itself.
  */
 export const isoDateSchema = z
   .string()

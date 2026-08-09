@@ -8,8 +8,12 @@ import {
 } from "ai";
 import { z } from "zod";
 
-import { isoDateSchema, type IsoDate } from "@/lib/nutrition/food-entry";
-import { describeIsoDate } from "@/lib/nutrition/local-date";
+import type { IsoDate } from "@/lib/nutrition/food-entry";
+import {
+  APP_TIME_ZONE,
+  describeIsoDate,
+  today,
+} from "@/lib/nutrition/local-date";
 import { DAILY_TARGETS } from "@/lib/nutrition/targets";
 import { createNutritionTools } from "@/lib/nutrition/tools";
 
@@ -20,14 +24,12 @@ export const maxDuration = 30;
 
 const chatRequestSchema = z.object({
   messages: z.array(z.custom<UIMessage>()),
-  /** The user's own calendar day, computed by their browser. */
-  today: isoDateSchema,
 });
 
-function systemPrompt(today: IsoDate): string {
+function systemPrompt(date: IsoDate): string {
   return [
     "You are a nutrition logging assistant for a single user.",
-    `Today is ${describeIsoDate(today)}. Never guess the date from anything else.`,
+    `Today is ${describeIsoDate(date)}. Never guess the date from anything else.`,
     "The user's daily targets are " +
       `${DAILY_TARGETS.calories} calories, ${DAILY_TARGETS.protein}g protein, ` +
       `${DAILY_TARGETS.carbs}g carbs and ${DAILY_TARGETS.fat}g fat.`,
@@ -77,15 +79,18 @@ export async function POST(request: Request) {
     return new Response("Malformed chat request", { status: 400 });
   }
 
-  const { messages, today } = parsed.data;
+  const { messages } = parsed.data;
+  // The day is the server's, so a request cannot name one: the prompt and the
+  // tools both read the same derived date.
+  const date = today(APP_TIME_ZONE);
 
   const result = streamText({
     model: MODEL,
-    system: systemPrompt(today),
+    system: systemPrompt(date),
     messages: await convertToModelMessages(messages),
     // Enough steps for the model to log an entry and then say what it logged.
     stopWhen: isStepCount(5),
-    tools: createNutritionTools({ today }),
+    tools: createNutritionTools({ today: date }),
   });
 
   return createUIMessageStreamResponse({

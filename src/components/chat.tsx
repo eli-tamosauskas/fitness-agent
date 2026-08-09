@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import type { ChatStatus, InferUITools, UIDataTypes, UIMessage } from "ai";
 import { CameraIcon, Loader2Icon, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { deleteFoodEntry } from "@/app/actions";
 
@@ -36,8 +36,6 @@ import {
   usePromptInputAttachments,
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
-import type { IsoDate } from "@/lib/nutrition/food-entry";
-import { LOCAL_DATE_COOKIE, localToday } from "@/lib/nutrition/local-date";
 import type { NutritionTools } from "@/lib/nutrition/tools";
 
 /**
@@ -142,18 +140,17 @@ function ComposerSubmit({
   );
 }
 
-export type ChatProps = {
-  /** The day the server derived the rings from, so we can tell it if it guessed wrong. */
-  renderedDate: IsoDate;
-};
-
 /**
- * The chat. Every request carries the browser's own calendar day, which is the
- * only thing that decides which day an entry lands on. When a stream finishes
- * in which something was logged, the server is asked to re-derive the totals —
- * the client never adds anything up itself.
+ * The chat. It sends no date: which day an entry lands on is the server's to
+ * decide. When a stream finishes in which something was logged, the server is
+ * asked to re-derive the totals — the client never adds anything up itself.
+ *
+ * A tab left open across midnight therefore keeps yesterday's header until it
+ * navigates or reloads. Nothing is mis-recorded — the server stamps each write
+ * with its own day — and a clock on the client is exactly the machinery this
+ * arrangement exists to avoid.
  */
-export function Chat({ renderedDate }: ChatProps) {
+export function Chat() {
   const router = useRouter();
   const [input, setInput] = useState("");
 
@@ -173,13 +170,6 @@ export function Chat({ renderedDate }: ChatProps) {
     router.refresh();
   };
 
-  // Tell the server which day the browser is on. Only the browser knows.
-  useEffect(() => {
-    const today = localToday();
-    document.cookie = `${LOCAL_DATE_COOKIE}=${today}; path=/; max-age=31536000; samesite=lax`;
-    if (today !== renderedDate) router.refresh();
-  }, [renderedDate, router]);
-
   const handleSubmit = (message: PromptInputMessage) => {
     const text = message.text.trim();
     // A label photo on its own is a message: the amount can follow in the next
@@ -188,7 +178,6 @@ export function Chat({ renderedDate }: ChatProps) {
 
     sendMessage(
       text ? { text, files: message.files } : { files: message.files },
-      { body: { today: localToday() } },
     );
     setInput("");
   };
