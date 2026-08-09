@@ -27,6 +27,34 @@ test("a nutrition label photo can be attached to a message", async ({
   await expect(page.getByRole("button", { name: /remove/i })).toBeVisible();
 });
 
+test("a photo leaves a mark in the conversation after a reload", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "label.png",
+    mimeType: "image/png",
+    buffer: PIXEL_PNG,
+  });
+
+  // The message is persisted on arrival, so waiting for the response headers is
+  // enough — this test never depends on what the model made of the picture.
+  const sent = page.waitForResponse((response) =>
+    response.url().includes("/api/chat"),
+  );
+  await page.getByRole("button", { name: /send|submit/i }).click();
+  await sent;
+
+  await page.reload();
+
+  // The bytes were never stored, so what comes back is a tile saying a photo
+  // was sent rather than the photo itself.
+  await expect(
+    page.getByRole("img", { name: /no longer kept/i }),
+  ).toBeVisible();
+});
+
 test("a photo on its own is enough to send a message", async ({ page }) => {
   await page.goto("/");
 

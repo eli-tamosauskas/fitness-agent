@@ -32,12 +32,12 @@ later, the marker is where a real URL would go.
 
 ## Acceptance criteria
 
-- [ ] A file part is persisted as a marker with its media type preserved and a sentinel URL in place of the data URL
-- [ ] No base64 image data reaches the database
-- [ ] Tests cover image parts being reduced to markers with their media type preserved
-- [ ] A replayed conversation renders a placeholder tile where the photo was, rather than a broken image or nothing at all
-- [ ] File parts are dropped before conversion to model messages, so a replayed day never sends the model an image it cannot resolve
-- [ ] Sending a label photo still works end to end as it does today: the live message carries the image to the model and the agent reads the figures off it
+- [x] A file part is persisted as a marker with its media type preserved and a sentinel URL in place of the data URL
+- [x] No base64 image data reaches the database
+- [x] Tests cover image parts being reduced to markers with their media type preserved
+- [x] A replayed conversation renders a placeholder tile where the photo was, rather than a broken image or nothing at all
+- [x] File parts are dropped before conversion to model messages, so a replayed day never sends the model an image it cannot resolve
+- [x] Sending a label photo still works end to end as it does today: the live message carries the image to the model and the agent reads the figures off it
 
 ## Blocked by
 

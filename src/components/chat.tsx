@@ -26,6 +26,7 @@ import {
   MessageResponse,
 } from "@/components/ai-elements/message";
 import { EntryCard } from "@/components/entry-card";
+import { LabelPhoto } from "@/components/label-photo";
 import {
   PromptInput,
   PromptInputButton,
@@ -234,15 +235,10 @@ export function Chat({
                     }
 
                     // The label photo, shown back so the user can see which
-                    // packet an entry came from.
+                    // packet an entry came from. After a reload it is a marker
+                    // rather than the picture; the tile says one was sent.
                     if (part.type === "file") {
-                      return (
-                        <Attachments key={key} variant="grid">
-                          <Attachment data={{ ...part, id: key }}>
-                            <AttachmentPreview />
-                          </Attachment>
-                        </Attachments>
-                      );
+                      return <LabelPhoto key={key} id={key} part={part} />;
                     }
 
                     return null;

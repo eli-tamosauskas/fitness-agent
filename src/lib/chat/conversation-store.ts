@@ -1,7 +1,7 @@
 import { defaultDatabasePath, openDatabase } from "@/lib/nutrition/database";
 import type { IsoDate } from "@/lib/nutrition/food-entry";
 
-import type { NutritionUIMessage } from "./message";
+import { withLabelPhotoMarkers, type NutritionUIMessage } from "./message";
 
 /**
  * A day's conversation, whole. One row per day rather than one per message: a
@@ -40,6 +40,10 @@ function openStore(path: string) {
  * reply ends — and deliberately not in a transaction with the food log write:
  * the two can be a long way apart in wall-clock time, and that is a lock rather
  * than a transaction boundary.
+ *
+ * Image bytes are stripped here rather than by the caller, so no route can
+ * forget and put four megabytes of base64 in a row that is rewritten on every
+ * message of the day.
  */
 export function saveConversation(
   date: IsoDate,
@@ -51,7 +55,7 @@ export function saveConversation(
       `INSERT INTO chat_days (date, messages_json) VALUES (?, ?)
        ON CONFLICT (date) DO UPDATE SET messages_json = excluded.messages_json`,
     )
-    .run(date, JSON.stringify(messages));
+    .run(date, JSON.stringify(withLabelPhotoMarkers(messages)));
 }
 
 /**

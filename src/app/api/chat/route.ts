@@ -13,7 +13,7 @@ import {
   conversationFor,
   saveConversation,
 } from "@/lib/chat/conversation-store";
-import type { NutritionUIMessage } from "@/lib/chat/message";
+import { withoutFileParts, type NutritionUIMessage } from "@/lib/chat/message";
 import type { IsoDate } from "@/lib/nutrition/food-entry";
 import {
   APP_TIME_ZONE,
@@ -107,13 +107,20 @@ export async function POST(request: Request) {
 
   // The day so far, plus what was just said. Persisted before the model is
   // called, so a message survives even a request that never gets a reply.
-  const conversation = [...conversationFor(date), parsed.data.message];
+  const sofar = conversationFor(date);
+  const conversation = [...sofar, parsed.data.message];
   saveConversation(date, conversation);
+
+  // Earlier photos are markers by now, and a marker resolves to nothing. Only
+  // the message that just arrived still carries an image, which is the one the
+  // model is being asked to read; what an earlier label said reaches it through
+  // the reply that read it.
+  const forTheModel = [...withoutFileParts(sofar), parsed.data.message];
 
   const result = streamText({
     model: MODEL,
     system: systemPrompt(date),
-    messages: await convertToModelMessages(conversation),
+    messages: await convertToModelMessages(forTheModel),
     // Enough steps for the model to log an entry and then say what it logged.
     stopWhen: isStepCount(5),
     tools: createNutritionTools({ today: date }),
